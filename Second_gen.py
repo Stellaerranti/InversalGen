@@ -20,6 +20,9 @@ def simulate_geomagnetic_reversals(rate_per_myr, time_span_myr, reversal_number=
     
     magnetozones = np.column_stack((reversal_times[:-1], reversal_times[1:]))
     
+    magnetozones[1:, 0] = magnetozones[1:, 0] + changing_state_time / 2
+    magnetozones[1:, 1] = magnetozones[1:, 0] + changing_state_time / 2
+    
     change_zones = np.column_stack((reversal_times[1:-1] - changing_state_time/2, reversal_times[1:-1] + changing_state_time/2))
        
     return reversal_times, magnetozones, change_zones
@@ -116,7 +119,7 @@ changing_state_time = 10000  # Time in years the field is in an intermediate sta
 min_gap_length = 0
 max_gap_length = 1000
 
-gap_percent = 10
+gap_percent = 30
 
 reversal_number = 22
    
@@ -126,12 +129,15 @@ min_gap_length = min_gap_length/1e6
 max_gap_length = max_gap_length/1e6
 gap_percent = gap_percent/100
 
-iterations_number = 10000
+iterations_number = 1000
 
 lost_magnetozones_list = []
 lost_change_zones_list = []
 fully_lost_change_zones__list = []
 
+'''
+reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
+'''
 for i in tqdm(range(iterations_number), desc="Running Simulation"):
 
     reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
@@ -171,10 +177,11 @@ header_data = [
     f"Time span: {time_span_myr} MYr",
     f"Number of reversals: {reversal_number - 2}",
     f"Duration of the transition state: {changing_state_time*1e6} yr",
-    f"Diastem coverage: {gap_percent}%",
+    f"Diastem coverage: {gap_percent*100}%",
     f"Diastem length interval {min_gap_length*1e6} yr, {max_gap_length*1e6} yr",    
     f"Iterations: {iterations_number}"
 ]
 
-save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} iterations_{iterations_number}.txt", summary_data, header="\n".join(header_data) + "\n\n")
+save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number}.txt",
+             summary_data, header="\n".join(header_data) + "\n\n")
 
