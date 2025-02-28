@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 def simulate_geomagnetic_reversals(rate_per_myr, time_span_myr, reversal_number=21, min_gap_years=30000):
     reversal_times = []
@@ -125,13 +126,13 @@ min_gap_length = min_gap_length/1e6
 max_gap_length = max_gap_length/1e6
 gap_percent = gap_percent/100
 
-iterations_number = 10
+iterations_number = 10000
 
 lost_magnetozones_list = []
 lost_change_zones_list = []
 fully_lost_change_zones__list = []
 
-for i in range(iterations_number):
+for i in tqdm(range(iterations_number), desc="Running Simulation"):
 
     reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
     diastems = simulate_diastem(time_span_myr, min_gap_length, max_gap_length, gap_percent)
