@@ -119,7 +119,7 @@ changing_state_time = 10000  # Time in years the field is in an intermediate sta
 min_gap_length = 0
 max_gap_length = 1000
 
-gap_percent = 30
+gap_percent = 80
 
 reversal_number = 22
    
