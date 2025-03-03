@@ -73,8 +73,20 @@ def simulate_diastem(time_span_myr, min_gap_length, max_gap_length, gap_percent)
     return np.array(diastems)
 
 def get_lost_percent(magnetozones, diastems, change_zones):
+    
+    '''
     total_magnetozone_length = np.sum(magnetozones[:, 1] - magnetozones[:, 0])
     lost_length = 0
+    '''
+   
+    total_magnetozones = len(magnetozones)
+    
+    fully_lost_magnetozones = sum(
+        any(d_start <= m_start and d_end >= m_end for d_start, d_end in diastems)for m_start, m_end in magnetozones)
+    
+    fully_lost_magnetozones_percent = fully_lost_magnetozones / total_magnetozones if total_magnetozones > 0 else 0
+    
+    '''
     
     for m_start, m_end in magnetozones:
         for d_start, d_end in diastems:
@@ -85,7 +97,9 @@ def get_lost_percent(magnetozones, diastems, change_zones):
             lost_length += min(m_end, d_end) - max(m_start, d_start)
             
     lost_magnetozones = lost_length / total_magnetozone_length if total_magnetozone_length > 0 else 0
+    '''
     
+    '''
     total_change_zones_length = np.sum(change_zones[:, 1] - change_zones[:, 0])
     lost_change_zones_length = 0
     
@@ -98,6 +112,24 @@ def get_lost_percent(magnetozones, diastems, change_zones):
             lost_change_zones_length += min(c_end, d_end) - max(c_start, d_start)
             
     lost_change_zones = lost_change_zones_length / total_change_zones_length if total_change_zones_length > 0 else 0
+    
+    '''
+    
+    lost_change_zones_mean_length = []
+    
+    for c_start, c_end in change_zones:
+        for d_start, d_end in diastems:
+            if d_end < c_start:
+                continue
+            if d_start > c_end:
+                break
+            
+            lost_change_zones_mean_length.append((min(c_end, d_end) - max(c_start, d_start))/(c_end-c_start))
+            
+              
+    lost_change_zones_mean_length = np.asarray(lost_change_zones_mean_length)
+    
+    lost_change_zones = lost_change_zones_mean_length.mean()
         
     total_change_zones = len(change_zones)
     fully_lost_change_zones = sum(
@@ -107,7 +139,7 @@ def get_lost_percent(magnetozones, diastems, change_zones):
     
     fully_lost_change_zones_percent = fully_lost_change_zones / total_change_zones if total_change_zones > 0 else 0
     
-    return lost_magnetozones,lost_change_zones,fully_lost_change_zones_percent
+    return fully_lost_magnetozones_percent,lost_change_zones,fully_lost_change_zones_percent
             
 def save_to_file(filename, data, header=None):
     with open(filename, 'w') as f:
@@ -188,7 +220,7 @@ max_gap_length = 1000
 
 #gap_percent = 20
 
-reversal_number = 102
+reversal_number = 22
    
 min_gap_myr = min_gap_years / 1e6  # Convert years to million years
 changing_state_time = changing_state_time/ 1e6  # Convert to million years
@@ -198,7 +230,7 @@ max_gap_length = max_gap_length/1e6
 
 iterations_number = 1000
 
-gap_percent_list = [50]
+gap_percent_list = [10,20,30]
 '''
 reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
 '''
