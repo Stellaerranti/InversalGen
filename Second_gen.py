@@ -216,11 +216,11 @@ min_gap_years = 30000  # Minimum gap between reversals in years
 changing_state_time = 10000  # Time in years the field is in an intermediate state
 
 min_gap_length = 0
-max_gap_length = 1000
+max_gap_length = 10000
 
 #gap_percent = 20
 
-reversal_number = 102
+reversal_number = 22
    
 min_gap_myr = min_gap_years / 1e6  # Convert years to million years
 changing_state_time = changing_state_time/ 1e6  # Convert to million years
@@ -230,7 +230,7 @@ max_gap_length = max_gap_length/1e6
 
 iterations_number = 1000
 
-gap_percent_list = [90]
+gap_percent_list = [10,20,30,40,50,60,70,80, 84, 88,90, 92, 96]
 '''
 reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
 '''

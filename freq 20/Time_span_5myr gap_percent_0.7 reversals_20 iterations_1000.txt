@@ -6,11 +6,11 @@ Diastem length interval 0.0 yr, 1000.0 yr
 Iterations: 1000
 
 Lost Magnetozones thickness:
-95% Confidence Interval: 51.1676, 59.5316
-Mean percent of lost thickness: 55.2000
+95% Confidence Interval: 0.0000, 0.0000
+Mean percent of lost thickness: 0.0000
 Lost change zones thickness:
-95% Confidence Interval: 50.7322, 59.7823
-Mean percent of lost zones thickness: 55.2798
+95% Confidence Interval: 6.1425, 7.6070
+Mean percent of lost zones thickness: 6.8706
 Fully lost change zones:
 95% Confidence Interval: 0.0000, 0.0000
 Mean percent of lost zones: 0.0000
