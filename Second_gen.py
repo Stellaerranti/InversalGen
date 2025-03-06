@@ -118,18 +118,29 @@ def get_lost_percent(magnetozones, diastems, change_zones):
     lost_change_zones_mean_length = []
     
     for c_start, c_end in change_zones:
+        zone_lost_fractions = []
+    
         for d_start, d_end in diastems:
             if d_end < c_start:
                 continue
             if d_start > c_end:
                 break
-            
-            lost_change_zones_mean_length.append((min(c_end, d_end) - max(c_start, d_start))/(c_end-c_start))
+    
+            zone_lost_fractions.append((min(c_end, d_end) - max(c_start, d_start)) / (c_end - c_start))
+    
+        # If the zone was untouched, append 0
+        if not zone_lost_fractions:
+            lost_change_zones_mean_length.append(0)
+        else:
+            lost_change_zones_mean_length.append(sum(zone_lost_fractions))
             
               
     lost_change_zones_mean_length = np.asarray(lost_change_zones_mean_length)
     
-    lost_change_zones = lost_change_zones_mean_length.mean()
+    if lost_change_zones_mean_length.size > 0:
+        lost_change_zones = lost_change_zones_mean_length.mean()
+    else:
+        lost_change_zones = 0
         
     total_change_zones = len(change_zones)
     fully_lost_change_zones = sum(
@@ -183,7 +194,8 @@ def iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_
     magnetozones_lower_bound, magnetozones_upper_bound = np.percentile(lost_magnetozones_list, [2.5, 97.5])
     change_zones_lower_bound, change_zones_upper_bound = np.percentile(lost_change_zones_list, [2.5, 97.5])
     fully_lost_change_zones_lower_bound, fully_lost_change_zones_upper_bound = np.percentile(fully_lost_change_zones__list, [2.5, 97.5])
-
+    
+    
     summary_data = [
         "Lost Magnetozones thickness:",
         f"95% Confidence Interval: {magnetozones_lower_bound* 100:.4f}, {magnetozones_upper_bound* 100:.4f}",
@@ -216,7 +228,7 @@ min_gap_years = 30000  # Minimum gap between reversals in years
 changing_state_time = 10000  # Time in years the field is in an intermediate state
 
 min_gap_length = 0
-max_gap_length = 10000
+max_gap_length = 1000
 
 #gap_percent = 20
 
@@ -230,7 +242,7 @@ max_gap_length = max_gap_length/1e6
 
 iterations_number = 1000
 
-gap_percent_list = [10,20,30,40,50,60,70,80, 84, 88,90, 92, 96]
+gap_percent_list = [10,20,30,40,50,60,70,80,90]
 '''
 reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
 '''
