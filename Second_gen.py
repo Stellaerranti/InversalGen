@@ -72,6 +72,27 @@ def simulate_diastem(time_span_myr, min_gap_length, max_gap_length, gap_percent)
     
     return np.array(diastems)
 
+def simulate_diastem_poisson(time_span_myr, average_diastem_length, gap_percent):
+    diastems = []
+    total_gap = 0
+    target_gap = time_span_myr * gap_percent
+
+    current_time = 0
+    while total_gap < target_gap and current_time < time_span_myr:
+        # Diastem length from exponential distribution
+        length = np.random.exponential(average_diastem_length)
+        
+        if current_time + length > time_span_myr:
+            break
+
+        diastems.append((current_time, current_time + length))
+        total_gap += length
+
+        # Advance to next potential start time (could add waiting time if needed)
+        current_time += length  # optionally: + np.random.exponential(average_diastem_length)
+
+    return np.array(diastems)
+
 def get_lost_percent(magnetozones, diastems, change_zones):
     
     '''
