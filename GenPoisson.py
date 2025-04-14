@@ -2,18 +2,16 @@ import numpy as np
 from tqdm import tqdm
 from scipy import stats
 
-def simulate_geomagnetic_reversals(alpha, beta, loc, time_span_myr, reversal_number=21, min_gap_years=30000):
+def simulate_geomagnetic_reversals(lambda_value, time_span_myr, reversal_number=21, min_gap_years=30000):
     """
-    Simulate geomagnetic reversals using a Gamma distribution for inter-arrival times.
-    
+    Simulate geomagnetic reversals using an Exponential distribution for inter-arrival times.
+
     Parameters:
-        alpha (float): Shape parameter of the Gamma distribution.
-        beta (float): Scale parameter of the Gamma distribution.
-        loc (float): Location parameter (shift) of the Gamma distribution.
+        lambda_value (float): Rate parameter λ of the Exponential distribution.
         time_span_myr (float): Total time span in million years.
         reversal_number (int): Target number of reversals.
         min_gap_years (float): Minimum time between reversals (in years).
-    
+
     Returns:
         reversal_times (np.ndarray): Times of reversals (Myr).
         magnetozones (np.ndarray): Time intervals of stable polarity.
@@ -24,30 +22,26 @@ def simulate_geomagnetic_reversals(alpha, beta, loc, time_span_myr, reversal_num
     min_gap_myr = min_gap_years / 1e6  # Convert years to Myr
 
     while len(reversal_times) < reversal_number:
-        # Sample inter-arrival time from Gamma distribution
-        wait_time = stats.gamma.rvs(alpha, loc=loc, scale=beta)
-        
-        # Enforce minimum gap
+        # Sample inter-arrival time from Exponential distribution
+        wait_time = stats.expon.rvs(scale=1 / lambda_value)
+
         if wait_time < min_gap_myr:
             continue
-        
+
         current_time += wait_time
         reversal_times.append(current_time)
 
-    # Normalize to [0, time_span_myr] while preserving order
     reversal_times = np.array(reversal_times)
     reversal_times = (reversal_times - reversal_times.min()) / (reversal_times.max() - reversal_times.min()) * time_span_myr
 
-    # Ensure minimum gap and prevent exceeding time_span_myr
     for i in range(1, len(reversal_times)):
-        if reversal_times[i] - reversal_times[i-1] < min_gap_myr:
-            reversal_times[i] = reversal_times[i-1] + min_gap_myr
+        if reversal_times[i] - reversal_times[i - 1] < min_gap_myr:
+            reversal_times[i] = reversal_times[i - 1] + min_gap_myr
         if reversal_times[i] > time_span_myr:
             reversal_times[i] = time_span_myr
-            reversal_times = reversal_times[:i+1]  # Truncate
+            reversal_times = reversal_times[:i + 1]
             break
 
-    # Generate magnetozones and change_zones
     magnetozones = np.column_stack((reversal_times[:-1], reversal_times[1:]))
     change_zones = np.column_stack((
         reversal_times[1:-1] - changing_state_time / 2,
@@ -222,7 +216,7 @@ def save_to_file(filename, data, header=None):
         else:
             f.write(str(data) + "\n")
             
-def iter(time_span_myr,lambda_value,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number):
+def iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number):
     
     lost_magnetozones_list = []
     lost_change_zones_list = []
@@ -231,7 +225,7 @@ def iter(time_span_myr,lambda_value,min_gap_years,changing_state_time,min_gap_le
     
     for i in tqdm(range(iterations_number), desc=f"Running Simulation for {gap_percent*100}%"):
 
-        reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(lambda_value, time_span_myr, reversal_number, min_gap_years)
+        reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
         diastems = simulate_diastem(time_span_myr, min_gap_length, max_gap_length, gap_percent)
 
         lost_magnetozones,lost_change_zones,fully_lost_change_zones_percent = get_lost_percent(magnetozones, diastems, change_zones)
@@ -277,7 +271,7 @@ def iter(time_span_myr,lambda_value,min_gap_years,changing_state_time,min_gap_le
     save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} max gap_{max_gap_length}.txt",
                  summary_data, header="\n".join(header_data) + "\n\n")
     
-def iterPoisson(time_span_myr,lambda_value, min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number):
+def iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number):
     lost_magnetozones_list = []
     lost_change_zones_list = []
     fully_lost_change_zones__list = []
@@ -287,7 +281,7 @@ def iterPoisson(time_span_myr,lambda_value, min_gap_years,changing_state_time,av
 
         #reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
         reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(
-            lambda_value, time_span_myr, reversal_number
+            alpha, beta, loc, time_span_myr, reversal_number
             )
         diastems = simulate_diastem_poisson(time_span_myr, average_diastem_length, gap_percent)
 
@@ -336,7 +330,9 @@ def iterPoisson(time_span_myr,lambda_value, min_gap_years,changing_state_time,av
 
 time_span_myr = 5  # Total time in million years
 
-lambda_value = 0.45
+alpha = 0.669
+beta = 0.530
+loc = 0.023
 
 min_gap_years = 30000  # Minimum gap between reversals in years
 changing_state_time = 10000  # Time in years the field is in an intermediate state
@@ -366,6 +362,7 @@ reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean
 
 for gap_percent in gap_percent_list:
     gap_percent = gap_percent/100
-    #iter(time_span_myr,lambda_value,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number)
-    iterPoisson(time_span_myr,lambda_value,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
+    #iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number)
+    #iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
+    iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
 
