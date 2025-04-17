@@ -271,7 +271,7 @@ def iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_
     save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} max gap_{max_gap_length}.txt",
                  summary_data, header="\n".join(header_data) + "\n\n")
     
-def iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number):
+def iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number):
     lost_magnetozones_list = []
     lost_change_zones_list = []
     fully_lost_change_zones__list = []
@@ -279,10 +279,7 @@ def iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time
     
     for i in tqdm(range(iterations_number), desc=f"Running Simulation for {gap_percent*100}%"):
 
-        #reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
-        reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(
-            alpha, beta, loc, time_span_myr, reversal_number
-            )
+        reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
         diastems = simulate_diastem_poisson(time_span_myr, average_diastem_length, gap_percent)
 
         lost_magnetozones,lost_change_zones,fully_lost_change_zones_percent = get_lost_percent(magnetozones, diastems, change_zones)
@@ -330,9 +327,7 @@ def iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time
 
 time_span_myr = 5  # Total time in million years
 
-alpha = 0.669
-beta = 0.530
-loc = 0.023
+mean_reversal_rate = 0.45# Total time in million years
 
 min_gap_years = 30000  # Minimum gap between reversals in years
 changing_state_time = 10000  # Time in years the field is in an intermediate state
@@ -344,7 +339,7 @@ average_diastem_length=0.2
 
 #gap_percent = 20
 
-reversal_number = 102
+reversal_number = 22
 
 
 min_gap_myr = min_gap_years / 1e6  # Convert years to million years
@@ -362,7 +357,7 @@ reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean
 
 for gap_percent in gap_percent_list:
     gap_percent = gap_percent/100
-    #iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number)
+    iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number)
     #iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
-    iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
+    #iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
 
