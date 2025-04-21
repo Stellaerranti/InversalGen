@@ -339,7 +339,7 @@ average_diastem_length=0.2
 
 #gap_percent = 20
 
-reversal_number = 22
+reversal_number = 102
 
 
 min_gap_myr = min_gap_years / 1e6  # Convert years to million years
