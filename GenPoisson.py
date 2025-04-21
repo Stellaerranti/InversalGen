@@ -350,7 +350,8 @@ max_gap_length = max_gap_length/1e6
 
 iterations_number = 1000
 
-gap_percent_list = [10,20,30,40,50,60,70,80,90]
+#gap_percent_list = [10,20,30,40,50,60,70,80,90]
+gap_percent_list = [70,80,90]
 '''
 reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
 '''
