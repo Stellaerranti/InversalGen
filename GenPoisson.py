@@ -339,7 +339,7 @@ average_diastem_length=1
 
 #gap_percent = 20
 
-reversal_number = 22
+reversal_number = 102
 
 
 min_gap_myr = min_gap_years / 1e6  # Convert years to million years
@@ -358,7 +358,7 @@ reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean
 
 for gap_percent in gap_percent_list:
     gap_percent = gap_percent/100
-    #iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number)
-    iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
+    iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number)
+    #iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
     #iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
 
