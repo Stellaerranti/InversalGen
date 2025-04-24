@@ -327,7 +327,7 @@ def iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_ti
 
 time_span_myr = 5  # Total time in million years
 
-mean_reversal_rate = 0.45# Total time in million years
+mean_reversal_rate = 0.45
 
 min_gap_years = 30000  # Minimum gap between reversals in years
 changing_state_time = 10000  # Time in years the field is in an intermediate state
@@ -339,7 +339,7 @@ average_diastem_length=1
 
 #gap_percent = 20
 
-reversal_number = 102
+reversal_number = 22
 
 
 min_gap_myr = min_gap_years / 1e6  # Convert years to million years
