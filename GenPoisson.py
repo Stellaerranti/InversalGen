@@ -123,12 +123,25 @@ def simulate_diastem_poisson(time_span_myr, average_diastem_length, gap_percent)
 
     return np.array(diastems)
 
-def get_lost_percent(magnetozones, diastems, change_zones):
+def get_lost_percent(magnetozones, diastems, change_zones,min_remaining_myr = 100/1e6):
     
-    '''
-    total_magnetozone_length = np.sum(magnetozones[:, 1] - magnetozones[:, 0])
-    lost_length = 0
-    '''
+    def _percent_too_short(zones, threshold):
+            if threshold is None or len(zones) == 0:
+                return 0.0
+    
+            too_short = 0
+            for zs, ze in zones:
+                remaining = ze - zs
+                for ds, de in diastems:
+                    if de <= zs or ds >= ze:          # no overlap
+                        continue
+                    remaining -= min(ze, de) - max(zs, ds)
+                    if remaining <= 0:
+                        break
+                if remaining < threshold:
+                    too_short += 1
+            return too_short / len(zones)
+        
    
     total_magnetozones = len(magnetozones)
     
@@ -137,34 +150,6 @@ def get_lost_percent(magnetozones, diastems, change_zones):
     
     fully_lost_magnetozones_percent = fully_lost_magnetozones / total_magnetozones if total_magnetozones > 0 else 0
     
-    '''
-    
-    for m_start, m_end in magnetozones:
-        for d_start, d_end in diastems:
-            if d_end < m_start:
-                continue
-            if d_start > m_end:
-                break
-            lost_length += min(m_end, d_end) - max(m_start, d_start)
-            
-    lost_magnetozones = lost_length / total_magnetozone_length if total_magnetozone_length > 0 else 0
-    '''
-    
-    '''
-    total_change_zones_length = np.sum(change_zones[:, 1] - change_zones[:, 0])
-    lost_change_zones_length = 0
-    
-    for c_start, c_end in change_zones:
-        for d_start, d_end in diastems:
-            if d_end < c_start:
-                continue
-            if d_start > c_end:
-                break
-            lost_change_zones_length += min(c_end, d_end) - max(c_start, d_start)
-            
-    lost_change_zones = lost_change_zones_length / total_change_zones_length if total_change_zones_length > 0 else 0
-    
-    '''
     
     lost_change_zones_mean_length = []
     
@@ -200,8 +185,16 @@ def get_lost_percent(magnetozones, diastems, change_zones):
     )
     
     fully_lost_change_zones_percent = fully_lost_change_zones / total_change_zones if total_change_zones > 0 else 0
+
+    too_short_magnetozones_percent = _percent_too_short(
+        magnetozones, min_remaining_myr
+    )
     
-    return fully_lost_magnetozones_percent,lost_change_zones,fully_lost_change_zones_percent
+    too_short_change_zones_percent = _percent_too_short(
+        change_zones, min_remaining_myr
+    )
+
+    return fully_lost_magnetozones_percent,lost_change_zones,fully_lost_change_zones_percent, too_short_magnetozones_percent, too_short_change_zones_percent
             
 def save_to_file(filename, data, header=None):
     with open(filename, 'w') as f:
@@ -216,11 +209,14 @@ def save_to_file(filename, data, header=None):
         else:
             f.write(str(data) + "\n")
             
-def iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number):
+def iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr):
     
     lost_magnetozones_list = []
     lost_change_zones_list = []
     fully_lost_change_zones__list = []
+    
+    too_short_magnetozones_percent_list = []
+    too_short_change_zones_percent_list = []
 
     
     for i in tqdm(range(iterations_number), desc=f"Running Simulation for {gap_percent*100}%"):
@@ -228,35 +224,48 @@ def iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_
         reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
         diastems = simulate_diastem(time_span_myr, min_gap_length, max_gap_length, gap_percent)
 
-        lost_magnetozones,lost_change_zones,fully_lost_change_zones_percent = get_lost_percent(magnetozones, diastems, change_zones)
+        lost_magnetozones,lost_change_zones,fully_lost_change_zones_percent, too_short_magnetozones_percent, too_short_change_zones_percent = get_lost_percent(magnetozones, diastems, change_zones)
         
         lost_magnetozones_list.append(lost_magnetozones)
         lost_change_zones_list.append(lost_change_zones)
         fully_lost_change_zones__list.append(fully_lost_change_zones_percent)
+        too_short_magnetozones_percent_list.append(too_short_magnetozones_percent)
+        too_short_change_zones_percent_list.append(too_short_change_zones_percent)
         
     lost_magnetozones_list = np.asarray(lost_magnetozones_list)
     lost_change_zones_list = np.asarray(lost_change_zones_list)
     fully_lost_change_zones__list = np.asarray(fully_lost_change_zones__list)
+    too_short_change_zones_percent_list = np.asarray(too_short_change_zones_percent_list)
+    too_short_magnetozones_percent_list = np.asarray(too_short_magnetozones_percent_list)
 
     lost_magnetozones_list.sort()
     lost_change_zones_list.sort()
     fully_lost_change_zones__list.sort()
+    too_short_change_zones_percent_list.sort()
+    too_short_magnetozones_percent_list.sort()
 
     magnetozones_lower_bound, magnetozones_upper_bound = np.percentile(lost_magnetozones_list, [2.5, 97.5])
     change_zones_lower_bound, change_zones_upper_bound = np.percentile(lost_change_zones_list, [2.5, 97.5])
     fully_lost_change_zones_lower_bound, fully_lost_change_zones_upper_bound = np.percentile(fully_lost_change_zones__list, [2.5, 97.5])
-    
+    too_short_change_zones_lower_bound, too_short_change_zones_upper_bound = np.percentile(too_short_change_zones_percent_list, [2.5, 97.5])
+    too_short_magnetozones_lower_bound, too_short_magnetozones_upper_bound = np.percentile(too_short_magnetozones_percent_list, [2.5, 97.5])
     
     summary_data = [
-        "Lost Magnetozones thickness:",
+        "Lost Magnetozones:",
         f"95% Confidence Interval: {magnetozones_lower_bound* 100:.4f}, {magnetozones_upper_bound* 100:.4f}",
-        f"Mean percent of lost thickness: {lost_magnetozones_list.mean() * 100:.4f}",
+        f"Mean percent of lost Magnetozones: {lost_magnetozones_list.mean() * 100:.4f}",
+        "Practically lost Magnetozones:",
+        f"95% Confidence Interval: {too_short_magnetozones_lower_bound* 100:.4f}, {too_short_magnetozones_upper_bound* 100:.4f}",
+        f"Mean percent of Practically lost Magnetozones: {too_short_magnetozones_percent_list.mean() * 100:.4f}",
         "Lost change zones thickness:",
         f"95% Confidence Interval: {change_zones_lower_bound* 100:.4f}, {change_zones_upper_bound* 100:.4f}",
         f"Mean percent of lost zones thickness: {lost_change_zones_list.mean() * 100:.4f}",
         "Fully lost change zones:",
         f"95% Confidence Interval: {fully_lost_change_zones_lower_bound* 100:.4f}, {fully_lost_change_zones_upper_bound* 100:.4f}",
-        f"Mean percent of lost zones: {fully_lost_change_zones__list.mean() * 100:.4f}"
+        f"Mean percent of lost zones: {fully_lost_change_zones__list.mean() * 100:.4f}",
+        "Practically lost change zones:",
+        f"95% Confidence Interval: {too_short_change_zones_lower_bound* 100:.4f}, {too_short_change_zones_upper_bound* 100:.4f}",
+        f"Mean percent of Practically lost zones: {too_short_change_zones_percent_list.mean() * 100:.4f}"
     ]
 
     header_data = [
@@ -265,16 +274,21 @@ def iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_
         f"Duration of the transition state: {changing_state_time*1e6} yr",
         f"Diastem coverage: {gap_percent*100}%",
         f"Diastem length interval {min_gap_length*1e6} yr, {max_gap_length*1e6} yr",    
-        f"Iterations: {iterations_number}"
+        f"Iterations: {iterations_number}",
+        f"Min remainig year: {min_remaining_myr*1e6} yr"
     ]
 
-    save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} max gap_{max_gap_length}.txt",
+    save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} max gap_{max_gap_length} min rem yr {{min_remaining_myr*1e6}}.txt",
                  summary_data, header="\n".join(header_data) + "\n\n")
     
-def iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number):
+def iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number,min_remaining_myr):
+    
     lost_magnetozones_list = []
     lost_change_zones_list = []
     fully_lost_change_zones__list = []
+    
+    too_short_magnetozones_percent_list = []
+    too_short_change_zones_percent_list = []
 
     
     for i in tqdm(range(iterations_number), desc=f"Running Simulation for {gap_percent*100}%"):
@@ -282,35 +296,48 @@ def iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_ti
         reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
         diastems = simulate_diastem_poisson(time_span_myr, average_diastem_length, gap_percent)
 
-        lost_magnetozones,lost_change_zones,fully_lost_change_zones_percent = get_lost_percent(magnetozones, diastems, change_zones)
+        lost_magnetozones,lost_change_zones,fully_lost_change_zones_percent, too_short_magnetozones_percent, too_short_change_zones_percent = get_lost_percent(magnetozones, diastems, change_zones)
         
         lost_magnetozones_list.append(lost_magnetozones)
         lost_change_zones_list.append(lost_change_zones)
         fully_lost_change_zones__list.append(fully_lost_change_zones_percent)
+        too_short_magnetozones_percent_list.append(too_short_magnetozones_percent)
+        too_short_change_zones_percent_list.append(too_short_change_zones_percent)
         
     lost_magnetozones_list = np.asarray(lost_magnetozones_list)
     lost_change_zones_list = np.asarray(lost_change_zones_list)
     fully_lost_change_zones__list = np.asarray(fully_lost_change_zones__list)
+    too_short_change_zones_percent_list = np.asarray(too_short_change_zones_percent_list)
+    too_short_magnetozones_percent_list = np.asarray(too_short_magnetozones_percent_list)
 
     lost_magnetozones_list.sort()
     lost_change_zones_list.sort()
     fully_lost_change_zones__list.sort()
+    too_short_change_zones_percent_list.sort()
+    too_short_magnetozones_percent_list.sort()
 
     magnetozones_lower_bound, magnetozones_upper_bound = np.percentile(lost_magnetozones_list, [2.5, 97.5])
     change_zones_lower_bound, change_zones_upper_bound = np.percentile(lost_change_zones_list, [2.5, 97.5])
     fully_lost_change_zones_lower_bound, fully_lost_change_zones_upper_bound = np.percentile(fully_lost_change_zones__list, [2.5, 97.5])
-    
+    too_short_change_zones_lower_bound, too_short_change_zones_upper_bound = np.percentile(too_short_change_zones_percent_list, [2.5, 97.5])
+    too_short_magnetozones_lower_bound, too_short_magnetozones_upper_bound = np.percentile(too_short_magnetozones_percent_list, [2.5, 97.5])
     
     summary_data = [
-        "Lost Magnetozones thickness:",
+        "Lost Magnetozones:",
         f"95% Confidence Interval: {magnetozones_lower_bound* 100:.4f}, {magnetozones_upper_bound* 100:.4f}",
-        f"Mean percent of lost thickness: {lost_magnetozones_list.mean() * 100:.4f}",
+        f"Mean percent of lost Magnetozones: {lost_magnetozones_list.mean() * 100:.4f}",
+        "Practically lost Magnetozones:",
+        f"95% Confidence Interval: {too_short_magnetozones_lower_bound* 100:.4f}, {too_short_magnetozones_upper_bound* 100:.4f}",
+        f"Mean percent of Practically lost Magnetozones: {too_short_magnetozones_percent_list.mean() * 100:.4f}",
         "Lost change zones thickness:",
         f"95% Confidence Interval: {change_zones_lower_bound* 100:.4f}, {change_zones_upper_bound* 100:.4f}",
         f"Mean percent of lost zones thickness: {lost_change_zones_list.mean() * 100:.4f}",
         "Fully lost change zones:",
         f"95% Confidence Interval: {fully_lost_change_zones_lower_bound* 100:.4f}, {fully_lost_change_zones_upper_bound* 100:.4f}",
-        f"Mean percent of lost zones: {fully_lost_change_zones__list.mean() * 100:.4f}"
+        f"Mean percent of lost zones: {fully_lost_change_zones__list.mean() * 100:.4f}",
+        "Practically lost change zones:",
+        f"95% Confidence Interval: {too_short_change_zones_lower_bound* 100:.4f}, {too_short_change_zones_upper_bound* 100:.4f}",
+        f"Mean percent of Practically lost zones: {too_short_change_zones_percent_list.mean() * 100:.4f}"
     ]
 
     header_data = [
@@ -318,11 +345,12 @@ def iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_ti
         f"Number of reversals: {reversal_number - 2}",
         f"Duration of the transition state: {changing_state_time*1e6} yr",
         f"Diastem coverage: {gap_percent*100}%",
-        f"Average diastem length, {average_diastem_length*1e6} yr",    
-        f"Iterations: {iterations_number}"
+        f"Diastem length interval {min_gap_length*1e6} yr, {max_gap_length*1e6} yr",    
+        f"Iterations: {iterations_number}",
+        f"Min remainig year: {min_remaining_myr*1e6} yr"
     ]
 
-    save_to_file(f"Poisson_process Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} max gap_{max_gap_length}.txt",
+    save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} max gap_{max_gap_length} min rem yr {{min_remaining_myr*1e6}}.txt",
                  summary_data, header="\n".join(header_data) + "\n\n")
 
 time_span_myr = 5  # Total time in million years
@@ -341,11 +369,14 @@ average_diastem_length=1
 
 reversal_number = 22
 
+min_remaining_myr = 100 #in yr
+
 
 min_gap_myr = min_gap_years / 1e6  # Convert years to million years
 changing_state_time = changing_state_time/ 1e6  # Convert to million years
 min_gap_length = min_gap_length/1e6
 max_gap_length = max_gap_length/1e6
+min_remaining_myr = min_remaining_myr/1e6
 #gap_percent = gap_percent/100
 
 iterations_number = 1000
@@ -358,7 +389,7 @@ reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean
 
 for gap_percent in gap_percent_list:
     gap_percent = gap_percent/100
-    iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number)
-    #iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
+    iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
+    #iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
     #iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
 
