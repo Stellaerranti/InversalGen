@@ -278,7 +278,7 @@ def iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_
         f"Min remainig year: {min_remaining_myr*1e6} yr"
     ]
 
-    save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} max gap_{max_gap_length} min rem yr {{min_remaining_myr*1e6}}.txt",
+    save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} max gap_{max_gap_length} min rem yr {min_remaining_myr*1e6}.txt",
                  summary_data, header="\n".join(header_data) + "\n\n")
     
 def iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number,min_remaining_myr):
@@ -350,7 +350,7 @@ def iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_ti
         f"Min remainig year: {min_remaining_myr*1e6} yr"
     ]
 
-    save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} max gap_{max_gap_length} min rem yr {{min_remaining_myr*1e6}}.txt",
+    save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} max gap_{max_gap_length} min rem yr {min_remaining_myr*1e6}.txt",
                  summary_data, header="\n".join(header_data) + "\n\n")
 
 time_span_myr = 5  # Total time in million years
@@ -376,20 +376,24 @@ min_gap_myr = min_gap_years / 1e6  # Convert years to million years
 changing_state_time = changing_state_time/ 1e6  # Convert to million years
 min_gap_length = min_gap_length/1e6
 max_gap_length = max_gap_length/1e6
-min_remaining_myr = min_remaining_myr/1e6
+#min_remaining_myr = min_remaining_myr/1e6
 #gap_percent = gap_percent/100
 
 iterations_number = 1000
 
 gap_percent_list = [10,20,30,40,50,60,70,80,90]
+
 #gap_percent_list = [90]
 '''
 reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
 '''
 
-for gap_percent in gap_percent_list:
-    gap_percent = gap_percent/100
-    iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
-    #iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
-    #iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
-
+for min_remaining_myr in [20,100]:
+    for reversal_number in [22,102]:
+        for gap_percent in gap_percent_list:    
+            gap_percent = gap_percent/100
+            min_remaining_myr = min_remaining_myr/1e6
+            iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
+            #iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
+            #iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
+    
