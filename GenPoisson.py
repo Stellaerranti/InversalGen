@@ -123,7 +123,7 @@ def simulate_diastem_poisson(time_span_myr, average_diastem_length, gap_percent)
 
     return np.array(diastems)
 
-def get_lost_percent(magnetozones, diastems, change_zones,min_remaining_myr = 100/1e6):
+def get_lost_percent(magnetozones, diastems, change_zones,min_remaining_myr):
     
     def _percent_too_short(zones, threshold):
             if threshold is None or len(zones) == 0:
@@ -224,7 +224,7 @@ def iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_
         reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
         diastems = simulate_diastem(time_span_myr, min_gap_length, max_gap_length, gap_percent)
 
-        lost_magnetozones,lost_change_zones,fully_lost_change_zones_percent, too_short_magnetozones_percent, too_short_change_zones_percent = get_lost_percent(magnetozones, diastems, change_zones)
+        lost_magnetozones,lost_change_zones,fully_lost_change_zones_percent, too_short_magnetozones_percent, too_short_change_zones_percent = get_lost_percent(magnetozones, diastems, change_zones, min_remaining_myr)
         
         lost_magnetozones_list.append(lost_magnetozones)
         lost_change_zones_list.append(lost_change_zones)
@@ -389,10 +389,10 @@ reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean
 '''
 
 for min_remaining_myr in [20,100]:
+    min_remaining_myr = min_remaining_myr/1e6
     for reversal_number in [22,102]:
         for gap_percent in gap_percent_list:    
-            gap_percent = gap_percent/100
-            min_remaining_myr = min_remaining_myr/1e6
+            gap_percent = gap_percent/100            
             iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
             #iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
             #iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
