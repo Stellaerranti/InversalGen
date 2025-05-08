@@ -15,7 +15,7 @@ def array_prep(arr, arr_conf):
     return arr, arr_conf
 
 reversal_number = 20
-max_gap = 100000
+max_gap = 1000
 min_rem_yr = 20
 
 max_gap = max_gap/1e6
@@ -69,11 +69,7 @@ pr_lost_change_zones, pr_lost_change_zones_conf = array_prep(pr_lost_change_zone
 
 figure, axis = plt.subplots(3, 2, figsize=(14, 12),  constrained_layout=True)
 
-if (reversal_number == 20): 
-    figure.suptitle(str(int(reversal_number/5))+' инверсии за миллион лет. Длительность диастем до ' + str(int(max_gap*1e6)) + ' лет. Минимальный интервал ' + str(min_rem_yr) + ' лет.', fontsize=16)
-
-if (reversal_number == 100): 
-    figure.suptitle(str(int(reversal_number/5))+' инверсий за миллион лет. Длительность диастем до ' + str(int(max_gap*1e6)) + ' лет. Минимальный интервал ' + str(min_rem_yr) + ' лет.', fontsize=16)
+figure.suptitle(str(int(reversal_number/5))+' инверсий за миллион лет. Средняя длина диастем ' + str(int(max_gap*1e6)) + ' лет. Минимальный интервал ' + str(min_rem_yr) + ' лет.', fontsize=16)
 
 
 #figure.tight_layout()
@@ -125,6 +121,10 @@ axis[2,1].legend(loc = 'upper left')
 axis[2,1].set_title('Сравнение')
 axis[2,1].grid(True)
 
-plt.show()                
+plt.show()      
+
+plt.savefig("./img/" + str(int(reversal_number/5))+' инверсий за миллион лет. Средняя длина диастем ' + str(int(max_gap*1e6)) + ' лет. Минимальный интервал ' + str(min_rem_yr) + ' лет.png')   
+
+
 
 

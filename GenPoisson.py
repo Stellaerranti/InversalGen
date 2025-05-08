@@ -296,7 +296,7 @@ def iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_ti
         reversal_times, magnetozones, change_zones = simulate_geomagnetic_reversals(mean_reversal_rate, time_span_myr, reversal_number, min_gap_years)
         diastems = simulate_diastem_poisson(time_span_myr, average_diastem_length, gap_percent)
 
-        lost_magnetozones,lost_change_zones,fully_lost_change_zones_percent, too_short_magnetozones_percent, too_short_change_zones_percent = get_lost_percent(magnetozones, diastems, change_zones)
+        lost_magnetozones,lost_change_zones,fully_lost_change_zones_percent, too_short_magnetozones_percent, too_short_change_zones_percent = get_lost_percent(magnetozones, diastems, change_zones, min_remaining_myr)
         
         lost_magnetozones_list.append(lost_magnetozones)
         lost_change_zones_list.append(lost_change_zones)
@@ -345,12 +345,12 @@ def iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_ti
         f"Number of reversals: {reversal_number - 2}",
         f"Duration of the transition state: {changing_state_time*1e6} yr",
         f"Diastem coverage: {gap_percent*100}%",
-        f"Diastem length interval {min_gap_length*1e6} yr, {max_gap_length*1e6} yr",    
+        f"Average diastem length  {average_diastem_length*1e6} yr",    
         f"Iterations: {iterations_number}",
         f"Min remainig year: {min_remaining_myr*1e6} yr"
     ]
 
-    save_to_file(f"Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} max gap_{max_gap_length} min rem yr {min_remaining_myr*1e6}.txt",
+    save_to_file(f"Poisson_Time_span_{time_span_myr}myr gap_percent_{gap_percent} reversals_{reversal_number - 2} iterations_{iterations_number} av gap_{average_diastem_length} min rem yr {min_remaining_myr*1e6}.txt",
                  summary_data, header="\n".join(header_data) + "\n\n")
 
 time_span_myr = 5  # Total time in million years
@@ -363,7 +363,7 @@ changing_state_time = 10000  # Time in years the field is in an intermediate sta
 min_gap_length = 0
 max_gap_length = 1000
 
-average_diastem_length=1
+average_diastem_length=0.0005
 
 #gap_percent = 20
 
@@ -393,7 +393,7 @@ for min_remaining_myr in [20,100]:
     for reversal_number in [22,102]:
         for gap_percent in gap_percent_list:    
             gap_percent = gap_percent/100            
-            iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
-            #iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
+            #iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
+            iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
             #iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
     
