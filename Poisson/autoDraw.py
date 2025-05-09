@@ -14,11 +14,11 @@ def array_prep(arr, arr_conf):
     arr_conf = arr_conf.transpose()
     return arr, arr_conf
 
-reversal_number = 20
-max_gap = 1000
+reversal_number = 100
+max_gap = 0.0005
 min_rem_yr = 20
 
-max_gap = max_gap/1e6
+#max_gap = max_gap/1e6
 
 lost_magnetozones = []
 lost_magnetozones_conf = []
