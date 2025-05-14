@@ -363,7 +363,7 @@ changing_state_time = 10000  # Time in years the field is in an intermediate sta
 min_gap_length = 0
 max_gap_length = 1000
 
-average_diastem_length=0.001
+average_diastem_length=0.2
 
 #gap_percent = 20
 
@@ -381,12 +381,19 @@ max_gap_length = max_gap_length/1e6
 
 iterations_number = 1000
 
-gap_percent_list = [10,20,30,40,50,60,70,80,90]
+#gap_percent_list = [10,20,30,40,50,60,70,80,90]
 
 #got to start
 
-#gap_percent_list = [80]
+gap_percent_list = [90]
 
+gap_percent = 90
+
+diastems = simulate_diastem_poisson(3000, average_diastem_length, gap_percent)
+
+np.savetxt("length_" + str(average_diastem_length*1e6)+".txt", (diastems[:,1] - diastems[:,0])*1e6, fmt='%10.5f')
+
+'''
 
 for min_remaining_myr in [20,100]:
     min_remaining_myr = min_remaining_myr/1e6
@@ -396,7 +403,7 @@ for min_remaining_myr in [20,100]:
             #iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
             iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
             #iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
-
+'''
 
 
 '''
