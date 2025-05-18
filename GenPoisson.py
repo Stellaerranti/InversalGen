@@ -122,7 +122,7 @@ def simulate_diastem_poisson(time_span_myr, average_diastem_length, gap_percent)
         current_time = end_time
 
     return np.array(diastems)
-
+'''
 def get_lost_percent(magnetozones, diastems, change_zones,min_remaining_myr):
     
     def _percent_too_short(zones, threshold):
@@ -144,18 +144,32 @@ def get_lost_percent(magnetozones, diastems, change_zones,min_remaining_myr):
         
     
     
-    total_magnetozone_length = np.sum(magnetozones[:, 1] - magnetozones[:, 0])
-    lost_length = 0
+
+    
+    lost_total_magnetozone_length = []
     
     for m_start, m_end in magnetozones:
+        zone_lost_fractions = []
+        
         for d_start, d_end in diastems:
             if d_end < m_start:
                 continue
             if d_start > m_end:
                 break
-            lost_length += min(m_end, d_end) - max(m_start, d_start)
             
-    lost_magnetozones_length = lost_length / total_magnetozone_length if total_magnetozone_length > 0 else 0
+            zone_lost_fractions.append((min(m_end, d_end) - max(m_start, d_start))/(m_end - m_start))
+            
+        if not zone_lost_fractions:
+            lost_total_magnetozone_length.append(0)
+        else:
+            lost_total_magnetozone_length.append(sum(zone_lost_fractions))
+    
+    lost_total_magnetozone_mean_length = np.asarray(lost_total_magnetozone_length)
+    
+    if lost_total_magnetozone_mean_length.size > 0:
+        lost_magnetozone_length = lost_total_magnetozone_mean_length.mean()
+    else:
+        lost_magnetozone_length = 0
     
     
     total_magnetozones = len(magnetozones)
@@ -209,8 +223,196 @@ def get_lost_percent(magnetozones, diastems, change_zones,min_remaining_myr):
         change_zones, min_remaining_myr
     )
 
-    return fully_lost_magnetozones_percent,lost_change_zones,fully_lost_change_zones_percent, too_short_magnetozones_percent, too_short_change_zones_percent, lost_magnetozones_length
-            
+    return fully_lost_magnetozones_percent,lost_change_zones,fully_lost_change_zones_percent, too_short_magnetozones_percent, too_short_change_zones_percent, lost_magnetozone_length
+'''
+
+'''
+def get_lost_percent(magnetozones, diastems, change_zones, min_remaining_myr):
+    def _percent_too_short(zones, threshold):
+        if threshold is None or len(zones) == 0:
+            return 0.0
+        
+        too_short = 0
+        zones_arr = np.asarray(zones)
+        diastems_arr = np.asarray(diastems)
+        
+        for (zs, ze) in zones:
+            remaining = ze - zs
+            # Vectorized overlap calculation
+            overlaps = np.minimum(ze, diastems_arr[:,1]) - np.maximum(zs, diastems_arr[:,0])
+            overlaps = overlaps[overlaps > 0]  # Only positive overlaps
+            remaining -= np.sum(overlaps)
+            if remaining < threshold:
+                too_short += 1
+        return too_short / len(zones)
+
+    # Convert to numpy arrays for vectorization
+    mag_arr = np.asarray(magnetozones)
+    chg_arr = np.asarray(change_zones)
+    dias_arr = np.asarray(diastems)
+    
+    # Magnetozone calculations
+    mag_lengths = mag_arr[:,1] - mag_arr[:,0]
+    mag_overlaps = np.maximum(0, 
+        np.minimum(mag_arr[:,1,None], dias_arr[None,:,1]) - 
+        np.maximum(mag_arr[:,0,None], dias_arr[None,:,0])
+    )
+    mag_lost_frac = np.sum(mag_overlaps, axis=1) / mag_lengths
+    lost_magnetozone_length = np.mean(mag_lost_frac) if len(mag_lost_frac) > 0 else 0
+    
+    # Fully lost magnetozones
+    fully_lost = np.any(
+        (dias_arr[:,0,None] <= mag_arr[None,:,0]) & 
+        (dias_arr[:,1,None] >= mag_arr[None,:,1]),
+        axis=0
+    )
+    fully_lost_magnetozones_percent = np.mean(fully_lost) if len(mag_arr) > 0 else 0
+
+    # Change zone calculations (same vectorized approach)
+    chg_lengths = chg_arr[:,1] - chg_arr[:,0]
+    chg_overlaps = np.maximum(0,
+        np.minimum(chg_arr[:,1,None], dias_arr[None,:,1]) - 
+        np.maximum(chg_arr[:,0,None], dias_arr[None,:,0])
+    )
+    chg_lost_frac = np.sum(chg_overlaps, axis=1) / chg_lengths
+    lost_change_zones = np.mean(chg_lost_frac) if len(chg_lost_frac) > 0 else 0
+    
+    # Fully lost change zones
+    fully_lost_chg = np.any(
+        (dias_arr[:,0,None] <= chg_arr[None,:,0]) & 
+        (dias_arr[:,1,None] >= chg_arr[None,:,1]),
+        axis=0
+    )
+    fully_lost_change_zones_percent = np.mean(fully_lost_chg) if len(chg_arr) > 0 else 0
+
+    # Too short percentages
+    too_short_magnetozones_percent = _percent_too_short(magnetozones, min_remaining_myr)
+    too_short_change_zones_percent = _percent_too_short(change_zones, min_remaining_myr)
+
+    return (
+        fully_lost_magnetozones_percent,
+        lost_change_zones,
+        fully_lost_change_zones_percent, 
+        too_short_magnetozones_percent, 
+        too_short_change_zones_percent, 
+        lost_magnetozone_length
+    )
+ 
+
+'''
+
+
+def _vectorised_overlap(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """
+    Return, for every interval in *a*, the total overlap length with *all*
+    intervals in *b*.  Overlaps are summed even when *b* intervals overlap
+    each other, reproducing the behaviour of the original loops.
+    """
+    if a.size == 0 or b.size == 0:
+        return np.zeros(len(a))
+
+    a_start = a[:, 0][:, None]
+    a_end   = a[:, 1][:, None]
+    b_start = b[:, 0][None, :]
+    b_end   = b[:, 1][None, :]
+
+    overlaps = np.clip(
+        np.minimum(a_end, b_end) - np.maximum(a_start, b_start),
+        0.0, None
+    )
+    return overlaps.sum(axis=1)
+
+
+def _contained(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Boolean mask: True where the *a* interval is fully inside any *b*."""
+    if a.size == 0 or b.size == 0:
+        return np.zeros(len(a), dtype=bool)
+
+    a_start = a[:, 0][:, None]
+    a_end   = a[:, 1][:, None]
+    b_start = b[:, 0][None, :]
+    b_end   = b[:, 1][None, :]
+
+    return ((b_start <= a_start) & (b_end >= a_end)).any(axis=1)
+
+
+def _too_short(overlap: np.ndarray,
+               lengths: np.ndarray,
+               threshold: float | None) -> float:
+    """Fraction of zones whose remaining length falls below *threshold*."""
+    if threshold is None or lengths.size == 0:
+        return 0.0
+    remaining = lengths - overlap
+    return (remaining < threshold).mean()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Public vectorised replacement
+# ──────────────────────────────────────────────────────────────────────────────
+def get_lost_percent(
+    magnetozones: list[tuple[float, float]],
+    diastems:      list[tuple[float, float]],
+    change_zones:  list[tuple[float, float]],
+    min_remaining_myr: float | None,
+):
+    """
+    Vectorised replacement for the original get_lost_percent.
+
+    Returns:
+        fully_lost_magnetozones_percent,
+        lost_change_zones,
+        fully_lost_change_zones_percent,
+        too_short_magnetozones_percent,
+        too_short_change_zones_percent,
+        lost_magnetozone_length
+    """
+    # --- convert inputs to (N, 2) float64 arrays --------------------------------
+    mz = np.asarray(magnetozones, dtype=np.float64)
+    dz = np.asarray(diastems,      dtype=np.float64)
+    cz = np.asarray(change_zones,  dtype=np.float64)
+
+    # --- magnetozones -----------------------------------------------------------
+    mz_lengths  = mz[:, 1] - mz[:, 0] if mz.size else np.array([])
+    mz_overlap  = _vectorised_overlap(mz, dz)
+    lost_mz_frac = (
+        mz_overlap / mz_lengths if mz_lengths.size else np.array([])
+    )
+    lost_magnetozone_length = (
+        float(lost_mz_frac.mean()) if lost_mz_frac.size else 0.0
+    )
+    fully_lost_mz_percent = (
+        float(_contained(mz, dz).mean()) if mz.size else 0.0
+    )
+    too_short_mz_percent = _too_short(
+        mz_overlap, mz_lengths, min_remaining_myr
+    )
+
+    # --- change-zones -----------------------------------------------------------
+    cz_lengths  = cz[:, 1] - cz[:, 0] if cz.size else np.array([])
+    cz_overlap  = _vectorised_overlap(cz, dz)
+    lost_cz_frac = (
+        cz_overlap / cz_lengths if cz_lengths.size else np.array([])
+    )
+    lost_change_zones = (
+        float(lost_cz_frac.mean()) if lost_cz_frac.size else 0.0
+    )
+    fully_lost_cz_percent = (
+        float(_contained(cz, dz).mean()) if cz.size else 0.0
+    )
+    too_short_cz_percent = _too_short(
+        cz_overlap, cz_lengths, min_remaining_myr
+    )
+
+    # --- output -----------------------------------------------------------------
+    return (
+        fully_lost_mz_percent,
+        lost_change_zones,
+        fully_lost_cz_percent,
+        too_short_mz_percent,
+        too_short_cz_percent,
+        lost_magnetozone_length,
+    )
+         
 def save_to_file(filename, data, header=None):
     with open(filename, 'w') as f:
         if header:
@@ -392,7 +594,7 @@ min_gap_years = 30000  # Minimum gap between reversals in years
 changing_state_time = 10000  # Time in years the field is in an intermediate state
 
 min_gap_length = 0
-max_gap_length = 100000
+max_gap_length = 10000
 
 average_diastem_length=0.0005
 
@@ -427,8 +629,8 @@ for min_remaining_myr in [20, 100]:
     for reversal_number in [22, 102]:
         for gap_percent in gap_percent_list:    
             gap_percent = gap_percent/100            
-            #iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
-            iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
+            iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
+            #iterPoisson(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
             #iterPoisson(time_span_myr,alpha, beta, loc,min_gap_years,changing_state_time,average_diastem_length,gap_percent,reversal_number,iterations_number)
 
 
