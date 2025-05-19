@@ -624,9 +624,9 @@ gap_percent_list = [10,20,30,40,50,60,70,80,90]
 
 
 
-for min_remaining_myr in [20, 100]:
+for min_remaining_myr in [20]:
     min_remaining_myr = min_remaining_myr/1e6
-    for reversal_number in [22, 102]:
+    for reversal_number in [102]:
         for gap_percent in gap_percent_list:    
             gap_percent = gap_percent/100            
             iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)

@@ -11,13 +11,13 @@ Lost Magnetozones:
 Mean percent of lost Magnetozones: 0.0000
 Practically lost Magnetozones:
 95% Confidence Interval: 0.0000, 0.0000
-Mean percent of Practically lost Magnetozones: 0.0020
+Mean percent of Practically lost Magnetozones: 0.0000
 Lost Magnetozones thickness:
-95% Confidence Interval: 9.5526, 10.3635
-Mean percent of lost Magnetozones thickness: 9.9597
+95% Confidence Interval: 9.5707, 10.3540
+Mean percent of lost Magnetozones thickness: 9.9563
 Lost change zones thickness:
-95% Confidence Interval: 8.6388, 11.2954
-Mean percent of lost zones thickness: 9.9588
+95% Confidence Interval: 8.6975, 11.2690
+Mean percent of lost zones thickness: 9.9330
 Fully lost change zones:
 95% Confidence Interval: 0.0000, 0.0000
 Mean percent of lost zones: 0.0000
