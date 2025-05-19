@@ -1,0 +1,26 @@
+Time span: 5 MYr
+Number of reversals: 20
+Duration of the transition state: 10000.0 yr
+Diastem coverage: 60.0%
+Diastem length interval 0.0 yr, 10000.0 yr
+Iterations: 1000
+Min remainig year: 100.0 yr
+
+Lost Magnetozones:
+95% Confidence Interval: 0.0000, 0.0000
+Mean percent of lost Magnetozones: 0.0000
+Practically lost Magnetozones:
+95% Confidence Interval: 0.0000, 0.0000
+Mean percent of Practically lost Magnetozones: 0.0095
+Lost Magnetozones thickness:
+95% Confidence Interval: 45.7372, 54.4854
+Mean percent of lost Magnetozones thickness: 50.2219
+Lost change zones thickness:
+95% Confidence Interval: 36.1884, 63.5002
+Mean percent of lost zones thickness: 50.3208
+Fully lost change zones:
+95% Confidence Interval: 0.0000, 20.0000
+Mean percent of lost zones: 6.6016
+Practically lost change zones:
+95% Confidence Interval: 0.0000, 20.0000
+Mean percent of Practically lost zones: 7.3316

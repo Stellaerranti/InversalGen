@@ -594,7 +594,7 @@ min_gap_years = 30000  # Minimum gap between reversals in years
 changing_state_time = 10000  # Time in years the field is in an intermediate state
 
 min_gap_length = 0
-max_gap_length = 10000
+max_gap_length = 1000
 
 average_diastem_length=0.0005
 
