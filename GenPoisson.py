@@ -614,7 +614,7 @@ max_gap_length = max_gap_length/1e6
 
 iterations_number = 1000
 
-gap_percent_list = [10,20,30,40,50,60,70,80,90]
+gap_percent_list = [95]
 
 #got to start
 
@@ -624,7 +624,7 @@ gap_percent_list = [10,20,30,40,50,60,70,80,90]
 
 
 
-for min_remaining_myr in [20]:
+for min_remaining_myr in [100]:
     min_remaining_myr = min_remaining_myr/1e6
     for reversal_number in [102]:
         for gap_percent in gap_percent_list:    
