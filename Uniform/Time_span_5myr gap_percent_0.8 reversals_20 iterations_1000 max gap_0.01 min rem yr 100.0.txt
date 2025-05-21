@@ -7,20 +7,20 @@ Iterations: 1000
 Min remainig year: 100.0 yr
 
 Lost Magnetozones:
-95% Confidence Interval: 0.0000, 0.0000
-Mean percent of lost Magnetozones: 0.0000
+95% Confidence Interval: 0.0000, 81.8182
+Mean percent of lost Magnetozones: 42.5636
 Practically lost Magnetozones:
-95% Confidence Interval: 0.0000, 0.0000
-Mean percent of Practically lost Magnetozones: 0.0000
+95% Confidence Interval: 4.5455, 86.3636
+Mean percent of Practically lost Magnetozones: 47.3000
 Lost Magnetozones thickness:
-95% Confidence Interval: 54.6497, 63.4991
-Mean percent of lost Magnetozones thickness: 59.2945
+95% Confidence Interval: 1.9111, 82.8203
+Mean percent of lost Magnetozones thickness: 44.3161
 Lost change zones thickness:
-95% Confidence Interval: 45.3439, 71.1973
-Mean percent of lost zones thickness: 59.0482
+95% Confidence Interval: 0.0000, 90.0000
+Mean percent of lost zones thickness: 47.5979
 Fully lost change zones:
-95% Confidence Interval: 0.0000, 25.0000
-Mean percent of lost zones: 9.9826
+95% Confidence Interval: 0.0000, 90.0000
+Mean percent of lost zones: 47.4500
 Practically lost change zones:
-95% Confidence Interval: 0.0000, 25.0000
-Mean percent of Practically lost zones: 10.8226
+95% Confidence Interval: 0.0000, 90.0000
+Mean percent of Practically lost zones: 47.4550

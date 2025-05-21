@@ -2,87 +2,142 @@ import numpy as np
 from tqdm import tqdm
 from scipy import stats
 
-def simulate_geomagnetic_reversals(lambda_value, time_span_myr, reversal_number=21, min_gap_years=30000):
-    """
-    Simulate geomagnetic reversals using an Exponential distribution for inter-arrival times.
-
-    Parameters:
-        lambda_value (float): Rate parameter λ of the Exponential distribution.
-        time_span_myr (float): Total time span in million years.
-        reversal_number (int): Target number of reversals.
-        min_gap_years (float): Minimum time between reversals (in years).
-
-    Returns:
-        reversal_times (np.ndarray): Times of reversals (Myr).
-        magnetozones (np.ndarray): Time intervals of stable polarity.
-        change_zones (np.ndarray): Time intervals of transitional states.
-    """
-    reversal_times = []
-    current_time = 0
-    min_gap_myr = min_gap_years / 1e6  # Convert years to Myr
-
-    while len(reversal_times) < reversal_number:
-        # Sample inter-arrival time from Exponential distribution
-        wait_time = stats.expon.rvs(scale=1 / lambda_value)
-
-        if wait_time < min_gap_myr:
-            continue
-
-        current_time += wait_time
-        reversal_times.append(current_time)
-
-    reversal_times = np.array(reversal_times)
-    reversal_times = (reversal_times - reversal_times.min()) / (reversal_times.max() - reversal_times.min()) * time_span_myr
-
-    for i in range(1, len(reversal_times)):
-        if reversal_times[i] - reversal_times[i - 1] < min_gap_myr:
-            reversal_times[i] = reversal_times[i - 1] + min_gap_myr
-        if reversal_times[i] > time_span_myr:
-            reversal_times[i] = time_span_myr
-            reversal_times = reversal_times[:i + 1]
+def simulate_geomagnetic_reversals(lambda_val, span, n=21, min_gap_yr=3e4):
+    min_gap = min_gap_yr / 1e6
+    needed  = n
+    while True:
+        waits = np.random.exponential(scale=1 / lambda_val, size=needed*2)
+        waits = waits[waits >= min_gap]
+        if waits.size >= n:
+            waits = waits[:n]
             break
+        needed *= 2
+    rev = np.cumsum(waits)
+    # scale to [0, span]
+    rev = (rev - rev[0]) / (rev[-1] - rev[0]) * span
+    # one pass to enforce min_gap after scaling
+    diff = np.maximum(min_gap, np.diff(rev, prepend=0))
+    rev  = np.cumsum(diff)
+    rev  = np.clip(rev, None, span)
+    # zones (disjoint) -------------------------------------------------
+    half = changing_state_time / 2.0
+    mz   = np.column_stack((np.r_[rev[0], rev[:-1] + half],
+                            np.r_[rev[:-1] - half, rev[-1]]))
+    cz   = np.column_stack((rev[1:-1] - half, rev[1:-1] + half))
+    return rev, mz, cz
 
-    magnetozones = np.column_stack((reversal_times[:-1], reversal_times[1:]))
-    change_zones = np.column_stack((
-        reversal_times[1:-1] - changing_state_time / 2,
-        reversal_times[1:-1] + changing_state_time / 2
-    ))
+def simulate_diastem(time_span_myr: float,
+                     min_len: float,
+                     max_len: float,
+                     gap_percent: float,
+                     rng: np.random.Generator | None = None) -> np.ndarray:
+    """
+    Return a *sorted, non-overlapping* (n, 2) array of diastem
+    intervals whose combined length is at least
+    `gap_percent * time_span_myr`.
 
-    return reversal_times, magnetozones, change_zones
+    The algorithm always draws a new interval **inside one of the still
+    uncovered gaps**, so it stays fast even when the requested coverage
+    approaches 100 %.
 
+    Parameters
+    ----------
+    time_span_myr : float
+        Total section length (same units as min_len / max_len).
+    min_len, max_len : float
+        Minimum and maximum individual diastem lengths.
+    gap_percent : float
+        Target fractional coverage (0 ≤ gap_percent ≤ 1).
+    rng : np.random.Generator, optional
+        Random-number generator (default: `np.random.default_rng()`).
+
+    Returns
+    -------
+    diastems : np.ndarray
+        (n, 2) array [[start₀, end₀], [start₁, end₁], …] with
+        startᵢ < endᵢ and startᵢ₊₁ ≥ endᵢ.
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    target_gap = time_span_myr * gap_percent         # total length wanted
+    covered    = 0.0                                 # running sum
+    diastems   = np.empty((0, 2), dtype=float)
+
+    # list of still-free patches, initially the whole span
+    gaps = np.array([[0.0, time_span_myr]], dtype=float)
+
+    while covered < target_gap and gaps.size:
+        # -------- pick a free patch, weighted by its length ------------ #
+        sizes    = gaps[:, 1] - gaps[:, 0]
+        patch_ix = rng.choice(len(gaps), p=sizes / sizes.sum())
+        g0, g1   = gaps[patch_ix]
+        room     = g1 - g0                               # free length here
+
+        # -------- choose an interval that fits in that patch ----------- #
+        length = rng.uniform(min_len, max_len)
+
+        if length >= room - 1e-12:                       # patch too small
+            # take the whole patch (nothing left over)
+            start, end = g0, g1
+        else:
+            # draw start so that [start, start+length] lies inside patch
+            start = rng.uniform(g0, g1 - length)
+            end   = start + length
+
+            # if we are still short of the target and the *only* reason
+            # is a rounding residue (< min_len), stretch this interval
+            shortfall = target_gap - (covered + length)
+            if 0.0 < shortfall < (room - length):
+                end   += shortfall
+                length += shortfall
+
+        # -------- book-keeping ---------------------------------------- #
+        diastems = np.vstack((diastems, [start, end]))
+        covered += (end - start)
+
+        # split the chosen patch into its left-over pieces
+        gaps = np.delete(gaps, patch_ix, axis=0)
+        if start > g0:
+            gaps = np.vstack((gaps, [g0, start]))
+        if end < g1:
+            gaps = np.vstack((gaps, [end, g1]))
+
+    # sort final result by start coordinate
+    diastems = diastems[np.argsort(diastems[:, 0])]
+    return diastems
+
+'''
 def simulate_diastem(time_span_myr, min_gap_length, max_gap_length, gap_percent):
     diastems = []
-    total_gap = 0
     target_gap = time_span_myr * gap_percent
-    
-    while total_gap < target_gap:
-        length = np.random.uniform(min_gap_length, max_gap_length)
-        start = np.random.uniform(0, time_span_myr - length)
-        end = start + length
-        
-        # Merge overlapping intervals 
-        new_diastem = (start, end)
-        updated_diastems = []
-        added = False
-        for s, e in diastems:
-            if e < start or s > end:  # No overlap
-                updated_diastems.append((s, e))
-            else:  # Overlapping case
-                new_start = min(s, start)
-                new_end = max(e, end)
-                new_length = new_end - new_start
-                total_gap += new_length - (e - s)  # Adjust total gap length
-                new_diastem = (new_start, new_end)
-                added = True
-        
-        updated_diastems.append(new_diastem)
-        diastems = sorted(updated_diastems, key=lambda x: x[0])
-        
-        if not added:
-            total_gap += length
-    
-    return np.array(diastems)
 
+    while True:
+        # 1. draw a new interval
+        length = np.random.uniform(min_gap_length, max_gap_length)
+        start  = np.random.uniform(0, time_span_myr - length)
+        end    = start + length
+
+        # 2. insert and merge
+        diastems.append((start, end))
+        diastems.sort()
+        merged = []
+        for s, e in diastems:
+            if merged and s <= merged[-1][1]:          # overlap/adjacent
+                merged[-1] = (merged[-1][0], max(merged[-1][1], e))
+            else:
+                merged.append((s, e))
+        diastems = merged
+
+        # 3. recompute true coverage
+        total_gap = sum(e - s for s, e in diastems)
+        if total_gap >= target_gap or total_gap >= time_span_myr:
+            break
+
+    return np.asarray(diastems, dtype=float)
+'''
+
+'''
 def simulate_diastem_poisson(time_span_myr, average_diastem_length, gap_percent):
     """
     Simulate diastems (hiatuses) using a Poisson process for both their occurrence and duration.
@@ -123,6 +178,83 @@ def simulate_diastem_poisson(time_span_myr, average_diastem_length, gap_percent)
 
     return np.array(diastems)
 '''
+
+def simulate_diastem_poisson(time_span_myr: float,
+                             average_diastem_length: float,
+                             gap_percent: float,
+                             rng: np.random.Generator | None = None,
+                             oversample: float = 2.0
+                            ) -> np.ndarray:
+    """
+    Vectorised version of the Poisson diastem simulator.
+
+    Parameters
+    ----------
+    time_span_myr : float
+        Total modelled span (Myr).
+    average_diastem_length : float
+        Mean of BOTH the inter-diastem waiting time (T1)
+        and the diastem duration (T2) in the classic two-stage
+        Poisson model (Myr).
+    gap_percent : float
+        Fraction of the time span that must be covered by diastems
+        (0 ≤ gap_percent ≤ 1).
+    rng : np.random.Generator, optional
+        Pass your own RNG for reproducibility.
+    oversample : float, optional
+        Safety factor for the batch size estimate. 2.0 is plenty
+        unless you are asking for gap_percent → 1.0.
+
+    Returns
+    -------
+    diastems : np.ndarray, shape (n, 2)
+        Sorted, non-overlapping intervals [[start₀, end₀], …].
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    # --- how many intervals do we *expect* to need? ------------------
+    target_gap   = time_span_myr * gap_percent
+    mean_gap_len = average_diastem_length          # E[T2]
+    n_expect     = int(np.ceil(target_gap / mean_gap_len * oversample)) + 8
+
+    while True:                                    # usually runs ONCE
+        # draw inter-arrivals and durations in one shot
+        inter = rng.exponential(scale=average_diastem_length, size=n_expect)
+        dur   = rng.exponential(scale=average_diastem_length, size=n_expect)
+
+        # Poisson process ⇒ cumulative sum gives the start times
+        start = np.cumsum(inter)
+        keep  = start < time_span_myr              # ignore ones past the end
+        if not keep.any():                         # very narrow span
+            # fall back to one interval that fills the remainder
+            return np.array([[0.0, min(target_gap, time_span_myr)]])
+        start = start[keep]
+        dur   = dur[keep]
+
+        end   = np.minimum(start + dur, time_span_myr)
+        dur   = end - start                       # clip duration
+
+        # cumulative covered time
+        covered = np.cumsum(dur)
+        hit_idx = np.searchsorted(covered, target_gap, side='right')
+
+        if hit_idx < covered.size:
+            # trim to the first interval that *reaches* the target
+            start = start[:hit_idx + 1]
+            end   = end[:hit_idx + 1]
+
+            # shrink the very last interval so total == target_gap exactly
+            overshoot = covered[hit_idx] - target_gap
+            if overshoot > 0.0:
+                end[-1] -= overshoot              # cannot make it negative
+
+            return np.column_stack((start, end))
+
+        # Not enough coverage ⇒ double the batch and loop once more
+        n_expect *= 2
+
+
 def get_lost_percent(magnetozones, diastems, change_zones,min_remaining_myr):
     
     def _percent_too_short(zones, threshold):
@@ -224,7 +356,7 @@ def get_lost_percent(magnetozones, diastems, change_zones,min_remaining_myr):
     )
 
     return fully_lost_magnetozones_percent,lost_change_zones,fully_lost_change_zones_percent, too_short_magnetozones_percent, too_short_change_zones_percent, lost_magnetozone_length
-'''
+
 
 '''
 def get_lost_percent(magnetozones, diastems, change_zones, min_remaining_myr):
@@ -345,7 +477,7 @@ def _too_short(overlap: np.ndarray,
     remaining = lengths - overlap
     return (remaining < threshold).mean()
 
-
+'''
 # ──────────────────────────────────────────────────────────────────────────────
 # Public vectorised replacement
 # ──────────────────────────────────────────────────────────────────────────────
@@ -412,6 +544,8 @@ def get_lost_percent(
         too_short_cz_percent,
         lost_magnetozone_length,
     )
+
+'''
          
 def save_to_file(filename, data, header=None):
     with open(filename, 'w') as f:
@@ -594,7 +728,7 @@ min_gap_years = 30000  # Minimum gap between reversals in years
 changing_state_time = 10000  # Time in years the field is in an intermediate state
 
 min_gap_length = 0
-max_gap_length = 1000
+max_gap_length = 100000
 
 average_diastem_length=0.0005
 
@@ -614,7 +748,7 @@ max_gap_length = max_gap_length/1e6
 
 iterations_number = 1000
 
-gap_percent_list = [95]
+gap_percent_list = [10,20,30,40,50,60,70,80,90]
 
 #got to start
 
@@ -624,9 +758,9 @@ gap_percent_list = [95]
 
 
 
-for min_remaining_myr in [100]:
+for min_remaining_myr in [100,20]:
     min_remaining_myr = min_remaining_myr/1e6
-    for reversal_number in [102]:
+    for reversal_number in [22,102]:
         for gap_percent in gap_percent_list:    
             gap_percent = gap_percent/100            
             iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
