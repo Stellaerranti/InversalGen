@@ -16,7 +16,7 @@ def array_prep(arr, arr_conf):
     arr_conf = arr_conf.transpose()
     return arr, arr_conf
 
-reversal_number = 20
+reversal_number = 100
 max_gap = 100000
 min_rem_yr = 100
 
@@ -40,7 +40,7 @@ pr_lost_change_zones_conf = []
 lost_change_zones_thikness = []
 lost_change_zones_thikness_conf = []
 
-gap_percent_list = [10,20,30,40,50,60,70,80,90]
+gap_percent_list = [10,20,30,40,50,60,70,80,90,95,98.5]
 
 
 for file in os.listdir("."):
