@@ -772,7 +772,7 @@ min_gap_years = 30000  # Minimum gap between reversals in years
 changing_state_time = 10000  # Time in years the field is in an intermediate state
 
 min_gap_length = 0
-max_gap_length = 1000
+max_gap_length = 10000
 
 average_diastem_length=0.0005
 
@@ -792,7 +792,7 @@ max_gap_length = max_gap_length/1e6
 
 iterations_number = 1000
 
-gap_percent_list = [10,20,30,40,50,60,70,80,90]
+gap_percent_list = [50,60,70,80,90]
 
 #got to start
 
@@ -800,6 +800,10 @@ gap_percent_list = [10,20,30,40,50,60,70,80,90]
 
 #gap_percent = 90
 
+'''
+For min 100 all done. 
+For min 20 102 is done for 50 and 60
+'''
 
 
 for min_remaining_myr in [100,20]:
