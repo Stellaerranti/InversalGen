@@ -772,7 +772,7 @@ min_gap_years = 30000  # Minimum gap between reversals in years
 changing_state_time = 10000  # Time in years the field is in an intermediate state
 
 min_gap_length = 0
-max_gap_length = 10000
+max_gap_length = 1000
 
 average_diastem_length=0.0005
 
@@ -804,7 +804,7 @@ gap_percent_list = [10,20,30,40,50,60,70,80,90]
 
 for min_remaining_myr in [100,20]:
     min_remaining_myr = min_remaining_myr/1e6
-    for reversal_number in [100]:
+    for reversal_number in [102,22]:
         for gap_percent in gap_percent_list:    
             gap_percent = gap_percent/100            
             iter(time_span_myr,mean_reversal_rate,min_gap_years,changing_state_time,min_gap_length,max_gap_length,gap_percent,reversal_number,iterations_number,min_remaining_myr)
